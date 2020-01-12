@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Coursera Practical Machine Learning Course Final Project"
 author: "Anna_Kozina"
 date: "13 01 2020"
 output: html_document
