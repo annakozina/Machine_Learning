@@ -1,0 +1,173 @@
+---
+title: "Untitled"
+author: "Anna_Kozina"
+date: "13 01 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages}
+  
+  if(!require(dplyr)){
+    install.packages("dplyr", lib="/dplyr/")
+    library(dplyr)
+  }
+
+  if(!require(lattice)){
+    install.packages("lattice", lib="/lattice/")
+    library(lattice)
+  }
+  
+  
+  if(!require(caret)){
+    install.packages("caret", lib="/caret/")
+    library(caret)
+  }
+  
+  if(!require(rpart)){
+    install.packages("rpart", lib="/rpart/")
+    library(lubridate)
+  }
+  
+  if(!require(rfm)){
+    install.packages("rpart.plot", lib="/rpart.plot/")
+    library(lubridate)
+  }
+  
+  if(!require(RColorBrewer)){
+    install.packages("RColorBrewer", lib="/RColorBrewer/")
+    library(RColorBrewer)
+  }
+  
+  if(!require(rattle)){
+    install.packages("rattle", lib="/rattle/")
+    library(rattle)
+  }
+  
+  if(!require(e1071)){
+    install.packages("e1071", lib="/e1071/")
+    library(e1071)
+  }
+  
+  if(!require(randomForest)){
+    install.packages("randomForest", lib="/randomForest/")
+    library(randomForest)
+  }
+  
+  if(!require(RCurl)){
+    install.packages("RCurl", lib="/RCurl/")
+    library(RCurl)
+  }
+  
+```
+
+```{r download data}
+
+  train <- getURL("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+                ssl.verifyhost=FALSE, ssl.verifypeer=FALSE)
+  
+  train <- read.csv(textConnection(train), header=T, na.strings=c("NA","#DIV/0!",""))
+
+
+  
+  test <- getURL("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+               ssl.verifyhost=FALSE, ssl.verifypeer=FALSE)
+  
+  test <- read.csv(textConnection(test), header=T, na.strings=c("NA","#DIV/0!",""))
+
+  
+  train  <- train[, colSums(is.na(train)) == 0]
+
+  str(train)
+```  
+  
+  
+Check for near zero variance predictors and drop them if necessary
+  
+```{r near zero variance}
+
+  nzv <- nearZeroVar(train)
+  train <- train[, -nzv]
+  dim(train)
+  
+```  
+  
+Split data
+
+```{r split}
+
+names(train)
+str(train)
+summary(train$classe)
+
+library(caret)
+set.seed(123)
+DataPartition <- createDataPartition(y=train$classe, p=0.7, list=FALSE)
+train_DataPartition <- train[DataPartition, ]
+test_DataPartition <- train[-DataPartition, ]
+
+str(train_DataPartition)
+table(train_DataPartition$classe) 
+```
+  
+Build random Forest
+ 
+```{r random forest}
+
+  library(randomForest)
+  set.seed(222)
+  rf <- randomForest(classe~., data=train)
+  print(rf)
+
+```
+    
+Predict (train data)
+
+```{r predict}
+
+  library(caret)
+  predict <- predict(rf, train_DataPartition)
+  table(predict)
+  confusionMatrix(predict, train_DataPartition$classe)
+
+```
+  
+  
+  
+The out-of-bag error 
+    
+There is no need for cross-validation/eparate test set to get an unbiased estimate of the test set error.   It is estimated internally, during the run, as follows:
+Each tree is constructed using a different bootstrap sample from the original data. 
+About 1/3 of the cases are left out of the bootstrap sample and not used in the construction of the
+tree.
+  
+Put each case left out in the construction of the kth tree down the kth tree to get a classification. 
+In this way, a test set classification is obtained for each case in about one-third of the trees. 
+At the end of the run, take j to be the class that got most of the votes every time case n was oob. 
+The proportion of times that j is not equal to the true class 
+of n averaged over all cases is the oob error estimate. This has proven to be unbiased in many tests
+  
+Predict (test data)
+
+```{r predict test}
+  library(caret)
+  
+  predict_2 <- predict(rf, test_DataPartition)
+  table(predict_2)
+
+  confusionMatrix(predict_2, test_DataPartition$classe)
+  
+```
+
+Summary
+  
+As shown in the accuracy result above, when tested on the subset data used for 
+cross validation we get an accuracy of 99%. This can be used to estimate our out of sample error. 
+On the other hand the fabricated model is fitted to the training portion of the data, we get an accuracy 
+of 100%. This can be used to estimate the in sample
+
+
